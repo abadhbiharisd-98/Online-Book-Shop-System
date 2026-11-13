@@ -31,33 +31,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['status' => 'error', 'message' => $error]);
             exit();
         }
-    } elseif (!$con) {
-        $error = "Database connection offline. Please check Aiven credentials in db_setup.php.";
-        if ($isJson) {
-            header('Content-Type: application/json');
-            http_response_code(503);
-            echo json_encode(['status' => 'error', 'message' => $error]);
-            exit();
-        }
     } else {
-        $u = mysqli_real_escape_string($con, $username);
-        $p = mysqli_real_escape_string($con, $password);
-        $res = mysqli_query($con, "SELECT * FROM users WHERE UserName = '$u' AND Password = '$p'");
+        // Master Admin Credentials Authentication
+        $isMasterAdmin = (strcasecmp($username, 'suyash') === 0 && $password === 'gulati');
 
-        if ($res && $res instanceof mysqli_result && mysqli_num_rows($res) > 0) {
-            $row = mysqli_fetch_assoc($res);
-            $_SESSION['user'] = $row['UserName'];
+        if ($isMasterAdmin) {
+            $_SESSION['user'] = 'suyash';
             $_SESSION['is_admin'] = true;
+
+            // Ensure suyash exists in database
+            if ($con) {
+                @mysqli_query($con, "INSERT IGNORE INTO users (UserName, Password) VALUES ('suyash', 'gulati')");
+            }
 
             if ($isJson) {
                 header('Content-Type: application/json');
-                echo json_encode(['status' => 'success', 'message' => 'Admin login successful', 'user' => $row['UserName']]);
+                echo json_encode(['status' => 'success', 'message' => 'Admin login successful', 'user' => 'suyash']);
                 exit();
             }
             header("Location: index.php");
             exit();
-        } else {
-            $error = "Invalid admin credentials.";
+        }
+
+        // Database query authentication
+        $authenticated = false;
+        if ($con) {
+            $u = mysqli_real_escape_string($con, $username);
+            $p = mysqli_real_escape_string($con, $password);
+            $res = @mysqli_query($con, "SELECT * FROM users WHERE (UserName = '$u' OR username = '$u') AND (Password = '$p' OR password = '$p')");
+
+            if ($res && $res instanceof mysqli_result && mysqli_num_rows($res) > 0) {
+                $row = mysqli_fetch_assoc($res);
+                $_SESSION['user'] = $row['UserName'] ?? ($row['username'] ?? $username);
+                $_SESSION['is_admin'] = true;
+                $authenticated = true;
+
+                if ($isJson) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'success', 'message' => 'Admin login successful', 'user' => $_SESSION['user']]);
+                    exit();
+                }
+                header("Location: index.php");
+                exit();
+            }
+        }
+
+        if (!$authenticated) {
+            $error = "Invalid admin credentials. Use Default: suyash / gulati";
             if ($isJson) {
                 header('Content-Type: application/json');
                 http_response_code(401);
@@ -110,14 +130,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
+        <div class="alert alert-info" style="font-size: 13px;">
+            <strong>Default Credentials:</strong><br>
+            Username: <code>suyash</code><br>
+            Password: <code>gulati</code>
+        </div>
+
         <form method="post" action="login.php">
             <div class="form-group">
                 <label>Admin Username</label>
-                <input type="text" name="username" class="form-control" placeholder="Default: suyash" required autofocus>
+                <input type="text" name="username" class="form-control" value="suyash" placeholder="Default: suyash" required autofocus>
             </div>
             <div class="form-group">
                 <label>Admin Password</label>
-                <input type="password" name="password" class="form-control" placeholder="Default: gulati" required>
+                <input type="password" name="password" class="form-control" value="gulati" placeholder="Default: gulati" required>
             </div>
             <button type="submit" class="btn btn-admin btn-block btn-lg">Log In as Admin</button>
         </form>
@@ -126,9 +152,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="text-center">
             <a href="../index.php" class="text-muted"><span class="glyphicon glyphicon-arrow-left"></span> Back to Store</a>
             &nbsp;|&nbsp;
-            <a href="../db_setup.php" class="text-muted"><span class="glyphicon glyphicon-wrench"></span> DB Setup</a>
+            <a href="../db_setup.php" class="text-muted"><span class="glyphicon glyphicon-wrench"></span> DB Setup Tool</a>
         </div>
     </div>
 </body>
 </html>
-

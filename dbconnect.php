@@ -12,6 +12,11 @@ if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
     error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 }
 
+// Disable PHP 8.1+ automatic mysqli_sql_exception on query errors
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
+
 class DatabaseConnection {
     // PHP 8.x safe: Class properties declared without dynamic function call initializers
     private string $host;
