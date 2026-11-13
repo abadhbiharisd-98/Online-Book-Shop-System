@@ -402,3 +402,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <script src="js/bootstrap.min.js"></script>
 </body>
 </html>
+
