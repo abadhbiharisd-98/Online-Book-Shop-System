@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: online-book-shop
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: DB_SERVER
+        sync: false
+      - key: DB_PORT
+        value: "26284"
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: defaultdb
+      - key: DB_SSL
+        value: "true"
+      - key: BASE_URL
+        sync: false
